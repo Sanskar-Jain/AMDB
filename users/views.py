@@ -35,3 +35,27 @@ def user_create(request):
     new_user.save()
 
     return Response(UserSerializer(instance=new_user).data, status=200)
+
+
+@api_view(["GET"])
+def get_user(request):
+    query = request.query_params
+    if len(query) == 0:
+        user = users.objects.all()
+        return Response(UserSerializer(instance=user, many=True).data, status=200)
+    elif 'user_id' in query.keys() and len(query['user_id']) == 0:
+        return Response({"error_message" : "user_id not found in url while processing GET request!"}, status=400)
+    elif 'user_id' in query.keys() and not query['user_id'][0].isdigit():
+        return Response({"error_message" : "user_id should be an Integer!"}, status=400)
+    elif 'user_id' in query.keys():
+        id = int(query['user_id'])
+        user = users.objects.filter(id = id).first()
+        if user == None:
+            return Response({"error_message" : "User not found!"})
+        return Response(UserSerializer(instance=user).data, status=200)
+    else:
+        return Response({"error_message" : "user_id not found in url while processing get request!"}, status=400)
+
+
+@api_view(["POST"])
+

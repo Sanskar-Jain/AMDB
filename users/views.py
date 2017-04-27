@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
-from users.models import users
+from django.contrib.auth.hashers import make_password, check_password
+from users.models import users, token
 
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -31,7 +32,7 @@ def user_create(request):
     if user != None:
         return Response({"error_message": "User with this Username already exists! Please Choose another Username."},status=400)
 
-    new_user = users.objects.create(name = name, username = username, password = password, email = email, short_bio = short_bio)
+    new_user = users.objects.create(name = name, username = username, password = make_password(password), email = email, short_bio = short_bio)
     new_user.save()
 
     return Response(UserSerializer(instance=new_user).data, status=200)
@@ -50,12 +51,33 @@ def get_user(request):
     elif 'user_id' in query.keys():
         id = int(query['user_id'])
         user = users.objects.filter(id = id).first()
+
         if user == None:
             return Response({"error_message" : "User not found!"})
+
         return Response(UserSerializer(instance=user).data, status=200)
     else:
         return Response({"error_message" : "user_id not found in url while processing get request!"}, status=400)
 
 
 @api_view(["POST"])
+def login_user(request):
+    try:
+        username = request.data["username"]
+        password = request.data["password"]
+    except KeyError:
+        return Response({"error_message": "Username or Password not provided! Invalid Request."}, status = 400)
 
+    user = users.objects.filter(username = username).first()
+
+    if user == None:
+        return Response({"error_message" : "Invalid Username or Password."}, status=400)
+
+    if not check_password(password, user.password):
+        return Response({"error_message" : "Invalid Username or Password."}, status=400)
+
+    access_token = token(user_id=user)
+    access_token.create_token()
+    access_token.save()
+
+    return Response({"access_token" : access_token.access_token}, status=200)

@@ -81,3 +81,30 @@ def login_user(request):
     access_token.save()
 
     return Response({"access_token" : access_token.access_token}, status=200)
+
+
+def check_token(request):
+    try:
+        access_token = request.META['HTTP_TOKEN']
+    except KeyError:
+        return 'KeyError'
+
+    token_exists = token.objects.filter(access_token=access_token, is_valid=True).first()
+
+    if not token_exists:
+        return None
+
+    return token_exists.user_id.name
+
+
+@api_view(["POST"])
+def create_movie(request):
+    current_user = check_token(request)
+
+    if current_user == None:
+        return Response({"error_message": "You are not Authorized to perform this Action."}, status=400)
+    elif current_user == 'KeyError':
+        return Response({"error_message": "Access Token not found in Header.Please pass it as 'token'"}, status=400)
+    else:
+        return HttpResponse(current_user)
+

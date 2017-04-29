@@ -1,11 +1,12 @@
 from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
 from django.contrib.auth.hashers import make_password, check_password
-from users.models import users, token
+from users.models import users, token, movies, genre, moviegenre
+from datetime import datetime
 
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from users.serializers import UserSerializer
+from users.serializers import UserSerializer, MovieSerializer
 
 # Create your views here.
 
@@ -94,7 +95,7 @@ def check_token(request):
     if not token_exists:
         return None
 
-    return token_exists.user_id.name
+    return token_exists.user_id
 
 
 @api_view(["POST"])
@@ -103,8 +104,71 @@ def create_movie(request):
 
     if current_user == None:
         return Response({"error_message": "You are not Authorized to perform this Action."}, status=400)
-    elif current_user == 'KeyError':
+
+    if current_user == 'KeyError':
         return Response({"error_message": "Access Token not found in Header.Please pass it as 'token'"}, status=400)
-    else:
-        return HttpResponse(current_user)
+
+    try:
+        name = request.data["name"]
+        duration_in_minutes = request.data['duration_in_minutes']
+        release_date = request.data['release_date']
+        censor_board_rating = request.data['censor_board_rating']
+        profile_pic_url = request.data['profile_pic_url']
+        genres = request.data['genre']
+
+        try:
+            duration_in_minutes = int(duration_in_minutes)
+        except:
+            return Response({"error_message" : "duration_in_minutes should be an Integer."}, status=400)
+
+        try:
+            censor_board_rating = float(censor_board_rating)
+        except:
+            return Response({"error_message" : "censor_board_rating should be a Decimal Number."}, status=400)
+
+    except KeyError:
+        return Response({"error_message" : "Please make sure you provide all fields : name, duration_in_minutes, release_date, censor_board_rating, profile_pic_url, genre"}, status=400)
+
+    if len(name) == 0:
+        return Response({"error_message" : "Name Field cannot be left empty."}, status=400)
+
+    movie_exists = movies.objects.filter(name=name).first()
+
+    if movie_exists:
+        return Response({"error_message" : "Movie already exists."}, status=400)
+
+    if not release_date:
+        return Response({"error_message" : "release_date cannot be left Empty."}, status=400)
+
+    if not censor_board_rating:
+        return Response({"error_message" : "censor_board_rating cannot be left Empty."}, status=400)
+
+    if not profile_pic_url:
+        return Response({"error_message" : "profile_pic_url cannot be left Empty."}, status=400)
+
+    if duration_in_minutes <= 0:
+        return Response({"error_message" : "duration_in_minutes should be greater than zero."}, status=400)
+
+    if len(genres) == 0:
+        return Response({"error_message" : "Every movie should have atleast one genre attached to it."}, status=400)
+
+    try:
+        release_date = datetime.strptime(release_date, "%Y-%m-%d")
+    except:
+        return Response({"error_message" : "Please Enter Date in 'yyyy-mm-dd' Format"}, status=400)
+
+    movie = movies.objects.create(name=name, duration_in_minutes=duration_in_minutes, release_date=release_date, overall_rating=0, censor_board_rating=censor_board_rating, profile_pic_url=profile_pic_url, user_id=current_user)
+    movie.save()
+
+    for i in genres:
+        genre_string = genre.objects.filter(name=i).first()
+        map_movie_genre = moviegenre.objects.create(movie_id=movie, genre_id=genre_string)
+
+    return Response(MovieSerializer(instance=movie).data, status=200)
+
+
+
+@api_view(["POST"])
+def review_movie(request):
+    current_user = check_token(request)
 

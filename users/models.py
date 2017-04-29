@@ -15,7 +15,7 @@ class users(models.Model):
 
 
 class token(models.Model):
-    user_id = models.ForeignKey(users)
+    user_id = models.ForeignKey(users,on_delete=models.CASCADE)
     access_token = models.CharField(max_length=255)
     created_on = models.DateTimeField(auto_now_add=True)
     last_request_on = models.DateTimeField(auto_now=True)
@@ -32,7 +32,7 @@ class movies(models.Model):
     overall_rating = models.DecimalField(decimal_places=2, max_digits=4)
     censor_board_rating = models.CharField(max_length=5)
     profile_pic_url = models.CharField(max_length=300)
-    user_id = models.ForeignKey(users)
+    user_id = models.ForeignKey(users,on_delete=models.CASCADE)
 
 
 class genre(models.Model):
@@ -41,5 +41,5 @@ class genre(models.Model):
 
 # Mapping Table
 class moviegenre(models.Model):
-    movie_id = models.ForeignKey(movies)
-    genre_id = models.ForeignKey(genre)
+    movie_id = models.ForeignKey(movies,on_delete=models.CASCADE)
+    genre_id = models.ForeignKey(genre,on_delete=models.CASCADE)

@@ -15,7 +15,7 @@ Including another URLconf
 """
 from django.conf.urls import url, include
 from django.contrib import admin
-from users.views import user_create, get_user, login_user, create_movie, list_movie
+from users.views import user_create, get_user, login_user, create_movie, list_movie, review_movie, logout
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
@@ -23,5 +23,7 @@ urlpatterns = [
     url(r'user', get_user),
     url(r'login', login_user),
     url(r'movie/create', create_movie),
-    url(r'movie/list', list_movie)
+    url(r'movie/list', list_movie),
+    url(r'movie/review', review_movie),
+    url(r'logout', logout)
 ]

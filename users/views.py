@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
 from django.contrib.auth.hashers import make_password, check_password
-from users.models import users, token, movies, genre, moviegenre
+from users.models import users, token, movies, genre, moviegenre, reviews
 from datetime import datetime
 import pprint
 import json
@@ -218,4 +218,73 @@ def list_movie(request):
 @api_view(["POST"])
 def review_movie(request):
     current_user = check_token(request)
+
+    if current_user == None:
+        return Response({"error_message": "You are not Authorized to perform this Action."}, status=400)
+
+    if current_user == 'KeyError':
+        return Response({"error_message": "Access Token not found in Header.Please pass it as 'token'"}, status=400)
+
+    try:
+        movie_id = request.data["movie_id"]
+        rating = request.data["rating"]
+        review = request.data["review"]
+    except:
+        return Response({"error_message" : "Please make sure you provide all fields : movie_id, rating, review"}, status=400)
+
+    try:
+        movie_id = int(movie_id)
+    except:
+        return Response({"error_message" : "movie_id must be an Integer."}, status=400)
+
+    try:
+        rating = float(rating)
+    except:
+        return Response({"error_message" : "rating must be an Number."}, status=400)
+
+    movie = movies.objects.filter(id = movie_id).first()
+
+    if movie is None:
+        return Response({"error_message" : "Invlaid Movie Id."}, status=400)
+
+    if rating < 0 or rating > 5:
+        return Response({"error_message" : "Rating must be between 0 and 5"}, status=400)
+
+    review_exists = reviews.objects.filter(user_id = current_user.id,movie_id=movie.id).first()
+
+    if review_exists:
+        return Response({"error_message" : "You have already reviewed this movie."}, status=400)
+
+    make_review = reviews.objects.create(user_id = current_user, movie_id = movie, rating = rating, review = review)
+    make_review.save()
+
+    reviews_of_movie = reviews.objects.filter(movie_id = movie_id)
+
+    overall_rating = 0
+
+    for each_movie in reviews_of_movie:
+        overall_rating += each_movie.rating
+
+    overall_rating /= len(reviews_of_movie)
+
+    movies.objects.filter(id = movie_id).update(overall_rating=overall_rating)
+    return Response({"success" : "Movie Reviewed"}, status=200)
+
+
+@api_view(["POST"])
+def logout(request):
+    current_user = check_token(request)
+
+    if current_user == None:
+        return Response({"error_message": "Invalid Access Token."}, status=400)
+
+    if current_user == 'KeyError':
+        return Response({"error_message": "Access Token not found in Header.Please pass it as 'token'"}, status=400)
+
+    access_token = request.META['HTTP_TOKEN']
+    cur_token = token.objects.filter(access_token=access_token).first()
+    cur_token.is_valid = 0
+    cur_token.save()
+
+    return Response({"success" : "User Logged Out."}, status=200)
 

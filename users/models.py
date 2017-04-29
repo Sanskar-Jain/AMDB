@@ -43,3 +43,10 @@ class genre(models.Model):
 class moviegenre(models.Model):
     movie_id = models.ForeignKey(movies,on_delete=models.CASCADE)
     genre_id = models.ForeignKey(genre,on_delete=models.CASCADE)
+
+
+class reviews(models.Model):
+    user_id = models.ForeignKey(users,on_delete=models.CASCADE)
+    movie_id = models.ForeignKey(movies,on_delete=models.CASCADE)
+    rating = models.DecimalField(max_digits=4, decimal_places=2)
+    review = models.CharField(max_length=300)

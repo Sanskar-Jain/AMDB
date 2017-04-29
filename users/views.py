@@ -3,6 +3,8 @@ from django.http import HttpResponse, JsonResponse
 from django.contrib.auth.hashers import make_password, check_password
 from users.models import users, token, movies, genre, moviegenre
 from datetime import datetime
+import pprint
+import json
 
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -166,6 +168,51 @@ def create_movie(request):
 
     return Response(MovieSerializer(instance=movie).data, status=200)
 
+
+@api_view(["GET"])
+def list_movie(request):
+
+    query = request.query_params
+
+    if len(query) == 0:
+        movie = movies.objects.all()
+        return Response(MovieSerializer(instance=movie, many=True).data, status=200)
+
+    elif 'q' in query.keys() and len(query['q']) == 0:
+        return Response({"error_message": "query parameter 'q' not found in url while processing GET request!"}, status=400)
+
+    elif 'q' in query.keys():
+        search = str(query['q'])
+
+        movie = movies.objects.filter(name__icontains=search)
+
+        genre_movie = genre.objects.filter(name__icontains=search)
+
+        movie_list = []
+        movie_list_names = []
+
+        if genre_movie is not None:
+            for each_genre in genre_movie:
+                id = each_genre.id
+                movie_for_genre = moviegenre.objects.filter(genre_id=id)
+
+                for i in movie_for_genre:
+                    movie_list.append(MovieSerializer(instance=i.movie_id).data)
+                    movie_list_names.append(i.movie_id.name)
+
+        if movie is not None:
+            for each_movie in movie:
+                if each_movie.name not in movie_list_names:
+                    movie_list.append(MovieSerializer(instance=each_movie).data)
+                    movie_list_names.append(each_movie.name)
+
+        if len(movie_list) == 0:
+            return Response({"error_message": "No Movies found!"})
+
+        return HttpResponse(json.dumps(movie_list, indent=4))
+
+    else:
+        return Response({"error_message": "query parameter 'q' containing search word not found in url while processing get request!"}, status=400)
 
 
 @api_view(["POST"])

@@ -4,6 +4,7 @@ import uuid
 # Create your models here.
 
 
+# Model to Store Details of User.
 class users(models.Model):
     name = models.CharField(max_length=200, null=False, blank=False)
     username = models.CharField(max_length=100, unique=True, null=False, blank=False)
@@ -14,6 +15,7 @@ class users(models.Model):
     updated_on = models.DateTimeField(auto_now=True)
 
 
+# Model to store Details about an Access Token.
 class token(models.Model):
     user_id = models.ForeignKey(users,on_delete=models.CASCADE)
     access_token = models.CharField(max_length=255)
@@ -25,6 +27,7 @@ class token(models.Model):
         self.access_token = uuid.uuid4()
 
 
+# Model to Store Details of Movies.
 class movies(models.Model):
     name = models.CharField(max_length=300)
     duration_in_minutes = models.IntegerField(default=120)
@@ -35,6 +38,7 @@ class movies(models.Model):
     user_id = models.ForeignKey(users,on_delete=models.CASCADE)
 
 
+# Model to store Various Genre.
 class genre(models.Model):
     name = models.CharField(max_length=200)
 
@@ -45,6 +49,7 @@ class moviegenre(models.Model):
     genre_id = models.ForeignKey(genre,on_delete=models.CASCADE)
 
 
+# Model to Store Review of Movies.
 class reviews(models.Model):
     user_id = models.ForeignKey(users,on_delete=models.CASCADE)
     movie_id = models.ForeignKey(movies,on_delete=models.CASCADE)
